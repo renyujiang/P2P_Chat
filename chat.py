@@ -2,6 +2,7 @@ import os
 import socket
 import sys
 import threading
+import applescript
 from time import sleep
 
 my_info = {'id': 0, 'name': 'client0', 'ip': '127.0.0.1'}
@@ -24,6 +25,7 @@ help_text = 'Commands:\n' \
 def console_thread():
     print('Welcome to chat console!')
     print('Type "help" to see all commands.\n')
+    print('This app is ONLY available on MacOS for now, DO NOT run it on other platforms!\n')
 
     # create a thread to listen to the port
     listen_thread_console = threading.Thread(target=listen_thread)
@@ -44,20 +46,6 @@ def console_thread():
             print(help_text)
         else:
             print('Unknown command')
-
-
-# send thread's function
-def send_message(sock):
-    while True:
-        message = input("Enter message: ")
-        sock.send(message.encode())
-
-
-# receive thread's function
-def receive_message(sock):
-    while True:
-        message = sock.recv(1024).decode()
-        print("Received message: " + message)
 
 
 # identify current platform
@@ -113,14 +101,10 @@ def listen_thread():
         if not open_terminal_cmd:
             print('Unknown platform')
             continue
-        t = threading.Thread(target=open_new_terminal, args=(open_terminal_cmd,))
-        t.start()
 
-        # create a new thread to handle the connection
-        t1 = threading.Thread(target=send_message, args=(conn,))
-        t2 = threading.Thread(target=receive_message, args=(conn,))
-        t1.start()
-        t2.start()
+        # create a new terminal to communicate
+        command = 'python /Users/renyujiang/Desktop/EC530/Assignments/P2P-Chat/socket_com.py ' + str(conn)
+        applescript.tell.app('Terminal', 'do script"' + command + '"', background=False)
 
 
 # console thread starts
