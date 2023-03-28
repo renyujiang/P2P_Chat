@@ -4,19 +4,32 @@ import threading
 
 # send thread's function
 def send_message(sock):
-    while True:
-        message = input("Enter message: ")
-        sock.send(message.encode())
-        if message == "quit":
-            sock.close()
-            break
+    try:
+        while True:
+            message = input("Enter message: ")
+            sock.send(message.encode())
+            if message == "quit":
+                sock.close()
+                break
+    except OSError:
+        print("Connection reset by peer")
+        sock.close()
+        return 0
 
 
 # receive thread's function
 def receive_message(sock):
-    while True:
-        message = sock.recv(1024).decode()
-        print("Received message: " + message)
+    try:
+        while True:
+            message = sock.recv(1024).decode()
+            if message == "quit":
+                sock.close()
+                break
+            print("Received message: " + message)
+    except OSError:
+        print("Connection reset by peer")
+        sock.close()
+        return 0
 
 
 def main():

@@ -77,6 +77,37 @@ def list_clients():
     return 0
 
 
+# send thread's function
+def send_message(sock):
+    try:
+        while True:
+            message = input("Enter message: ")
+            sock.send(message.encode())
+            if message == 'quit':
+                sock.close()
+                break
+    except OSError:
+        print('Connection reset by peer')
+        sock.close()
+        return 0
+
+
+# receive thread's function
+def receive_message(sock):
+    try:
+        while True:
+            message = sock.recv(1024).decode()
+            if message == 'quit':
+                sock.close()
+                print('Connection reset by peer')
+                break
+            print("Received message: " + message)
+    except OSError:
+        print('Connection reset by peer')
+        sock.close()
+        return 0
+
+
 # listen thread's function
 def listen_thread():
     # get local ip address
@@ -91,9 +122,11 @@ def listen_thread():
     sock.bind(server_address)
     # listen for incoming connections
     sock.listen(1)
+    conn_list = []
     while True:
         # wait for a connection
         conn, addr = sock.accept()
+        conn_list.append(conn)
         print("\nListen thread:~$ Connected by " + str(addr))
 
         # create a new thread to open a new terminal
@@ -102,9 +135,10 @@ def listen_thread():
             print('Unknown platform')
             continue
 
-        # create a new terminal to communicate
-        command = 'python /Users/renyujiang/Desktop/EC530/Assignments/P2P-Chat/socket_com.py ' + str(conn)
-        applescript.tell.app('Terminal', 'do script"' + command + '"', background=False)
+        t1 = threading.Thread(target=send_message, args=(conn,))
+        t2 = threading.Thread(target=receive_message, args=(conn,))
+        t1.start()
+        t2.start()
 
 
 # console thread starts
