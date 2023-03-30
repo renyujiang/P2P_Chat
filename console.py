@@ -21,7 +21,7 @@ client_list = [{'id': 0, 'name': 'client0', 'ip': '127.0.0.1'},
 
 help_text = 'Commands:\n' \
             '\tlist: list all clients\n' \
-            '\tconnect <client_id>: connect to a client\n' \
+            '\tconnect <ip> <port>: connect to a client\n' \
             '\tquit: quit the program\n' \
             '\thelp: show help text\n'
 
