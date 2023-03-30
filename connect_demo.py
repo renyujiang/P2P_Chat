@@ -34,7 +34,7 @@ def receive_message(sock):
 
 def main():
     # 定义服务器的 IP 地址和端口号
-    server_ip = "10.239.81.4"
+    server_ip = "127.0.0.1"
     server_port = 8080
 
     # 创建 Socket 对象
