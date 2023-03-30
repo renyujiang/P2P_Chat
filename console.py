@@ -221,8 +221,8 @@ def handle_connection(conn, ip_address):
 def listen_thread():
     # get local ip address
     hostname = socket.gethostname()
-    # ip_address = socket.gethostbyname(hostname)
-    ip_address = '127.0.0.1'
+    ip_address = socket.gethostbyname(hostname)
+    # ip_address = '127.0.0.1'
     print("Local IP address: " + ip_address)
     # create a socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

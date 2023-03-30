@@ -25,14 +25,14 @@ In addition, chatting with other clients is using different processes, so it won
 2. It has a chat history, so you can see the chat history with other clients.
 3. It uses multithreading and multiprocessing, chatting with other clients is continuously, you can send as many messages as you want.
 4. Moreover, the processing of connecting other clients is total automatic, you don't need to do anything, just wait for new terminals to show up.
-5. More features are coming soon.
+5. Robust, chatting terminal can be closed without affecting the main process and the listening thread wouldn't block the console's main functions.
 
 ### How to use
 
 The following commands are available in the chat program:
 
 1. list: List all connected clients
-2. connect <client_id>: Connect to a client with the specified ID 
+2. connect <ip> <port>: Connect to a client with the ip and port
 3. help: Show help text
 4. quit: Quit the program
 
