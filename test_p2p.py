@@ -1,10 +1,11 @@
+import io
 import subprocess
 import time
 import unittest
-from io import StringIO
+from io import *
 from unittest.mock import patch
 
-from comm import server, client
+from comm import *
 from console import *
 
 
@@ -41,27 +42,27 @@ class TestConsole(unittest.TestCase):
                           "connection history\n\thelp: show help text", fake_stdout.getvalue())
 
 
-# class TestCommunication(unittest.TestCase):
-#     def setUp(self):
-#         self.server_port = 8080
-#         self.ip = '127.0.0.1'
-#
-#     def test_server(self):
-#         def run_server():
-#             subprocess.call(["python", "comm.py", "server", "127.0.0.1", str(8080)])
-#
-#         def run_client():
-#             client("127.0.0.1", 8080)
-#
-#         server_thread = threading.Thread(target=run_server)
-#         server_thread.start()
-#
-#         time.sleep(1)
-#
-#         fake_inputs = ['hello from client', 'test2','q']
-#         with patch('builtins.input', side_effect=fake_inputs):
-#             with patch('sys.stdout', new=StringIO()) as fake_stdout:
-#                 client_thread = threading.Thread(target=run_client)
-#                 client_thread.start()
-#                 time.sleep(1)
-#                 self.assertIn('13242546', fake_stdout.getvalue())
+class TestCommunication(unittest.TestCase):
+
+    def test_socket_communication(self):
+        self.server_thread = threading.Thread(target=server_unittest)
+        self.server_thread.start()
+
+        sleep(3)
+
+        original_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+
+        client_unittest()
+        output = sys.stdout.getvalue().strip()
+        expected_output = 'Accepted connection from 127.0.0.1\nReceived data: Hello from the client\nConnection ' \
+                          'closed\nReceived response: Hello from the client\nConnection closed'
+
+        expected_output_tuple = tuple(expected_output.split('\n'))
+
+        output_list = output.split('\n')
+
+        for i in output_list:
+            self.assertIn(i, expected_output_tuple)
+
+        sys.stdout = original_stdout
