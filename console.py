@@ -1,6 +1,9 @@
+import ctypes
+import datetime
 import os
 import queue
 import random
+import signal
 import socket
 import sys
 import threading
@@ -9,21 +12,9 @@ from time import sleep
 
 from applescript import tell
 
-my_info = {'id': 0, 'name': 'client0', 'ip': '127.0.0.1'}
+import sqlite_op
 
-client_list = [{'id': 0, 'name': 'client0', 'ip': '127.0.0.1'},
-               {'id': 1, 'name': 'client1', 'ip': '127.0.0.1'},
-               {'id': 2, 'name': 'client2', 'ip': '127.0.0.1'},
-               {'id': 3, 'name': 'client3', 'ip': '127.0.0.1'},
-               {'id': 4, 'name': 'client4', 'ip': '127.0.0.1'},
-               {'id': 5, 'name': 'client5', 'ip': '127.0.0.1'},
-               {'id': 6, 'name': 'client6', 'ip': '127.0.0.1'}]
-
-help_text = 'Commands:\n' \
-            '\tlist: list all clients\n' \
-            '\tconnect <ip> <port>: connect to a client\n' \
-            '\tquit: quit the program\n' \
-            '\thelp: show help text\n'
+my_info = {'id': 0, 'name': 'Console', 'ip': '127.0.0.1'}
 
 # listen to the port
 listen_port = 8080
@@ -40,6 +31,7 @@ def console_thread():
 
     # create a thread to listen to the port
     listen_thread_console = threading.Thread(target=listen_thread)
+    listen_thread_console.setDaemon(True)
     listen_thread_console.start()
     sleep(1)
     # loop forever until receive quit command
@@ -56,13 +48,30 @@ def console_thread():
                 print('Missing argument')
             else:
                 connect_to_client(cmd[1])
+        elif cmd[0] == 'list':
+            list_clients()
+        elif cmd[0] == 'register':
+            register_to_db()
         elif cmd[0] == 'help':
-            print(help_text)
+            with open("./docs/help.txt", "r") as file:
+                help_show()
         elif cmd[0] == 'quit':
             print('Bye!')
             return 0
         else:
             print('Unknown command')
+
+
+def help_show():
+    with open("./docs/help.txt", "r") as file:
+        lines = file.readlines()
+        first_line = True
+        for line in lines:
+            if first_line:
+                print(line.strip())
+                first_line = False
+            else:
+                print('\t' + line.strip().replace("\t", "    "))
 
 
 # identify current platform
@@ -106,13 +115,25 @@ def new_terminal_client(ip, port):
 # list all clients
 def list_clients():
     tmp = 0
-    for i in client_list:
-        print(i['name'], end='\t')
+    client_list_sqlite = sqlite_op.get_clients()
+    for i in client_list_sqlite:
+        print(str(i[0]) + "  " + str(i[1]), end='\t')
         tmp += 1
         if tmp % 5 == 0:
             print('')
     print('')
     return 0
+
+
+# register to local sqlite database
+def register_to_db():
+    try:
+        name_tmp = input("Enter client's name: ")
+        ip_tmp = input("Enter client's ip: ")
+        sqlite_op.insert_clients(name_tmp, ip_tmp)
+        return True
+    except Exception as e:
+        return e
 
 
 # send thread's function
@@ -164,17 +185,38 @@ def connect_to_client(client_ip):
         # create two threads to send and receive messages
         print("\x1b[1A\x1b[2K", end="")
         print('Connection established')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = client_ip
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'active, success')
         new_terminal_client(client_ip, message_split[1])
         print(my_info['name'] + '@' + my_info['ip'] + ':~$ ', end='')
         return True
     elif message_split[0] == 'reject':
         print("\x1b[1A\x1b[2K", end="")
         print('Connection rejected')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = client_ip
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'active, failure')
         print(my_info['name'] + '@' + my_info['ip'] + ':~$ ', end='')
         return False
     else:
         print("\x1b[1A\x1b[2K", end="")
         print('Unknown message, connection closed')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = client_ip
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'active, failure')
         print(my_info['name'] + '@' + my_info['ip'] + ':~$ ', end='')
         return False
 
@@ -202,6 +244,13 @@ def handle_connection(conn, ip_address):
         new_terminal_server(ip_address, random_port)
         print("\x1b[1A\x1b[2K", end="")
         print('Connection established')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = str(conn.getpeername())
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'passive, success')
         print(my_info['name'] + '@' + my_info['ip'] + ':~$ ', end='')
     elif user_input == 'n' or user_input == 'N':
         # send a rejection message to the client
@@ -209,12 +258,39 @@ def handle_connection(conn, ip_address):
         conn.close()
         print("\x1b[1A\x1b[2K", end="")
         print('Connection closed')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = str(conn.getpeername())
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'passive, failure')
         print(my_info['name'] + '@' + my_info['ip'] + ':~$ ', end='')
     else:
         print("\x1b[1A\x1b[2K", end="")
         print('Unknown command, connection closed')
+        now = datetime.datetime.now()
+        date_string = now.strftime("%m, %d, %Y")
+        username1 = 'this client'
+        ip_addr1 = ip_address
+        username2 = 'unknown'
+        ip_addr2 = str(conn.getpeername())
+        sqlite_op.insert_history_connections(date_string, username1, ip_addr1, username2, ip_addr2, 'passive, failure')
         conn.send('reject'.encode())
         conn.close()
+
+
+def stop_thread(thread):
+    if not thread.is_alive():
+        return
+
+    tid = thread.ident
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tid), ctypes.py_object(SystemExit))
+    if res == 0:
+        raise ValueError("nonexistent thread id")
+    elif res > 1:
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tid), 0)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
 # listen thread's function
@@ -223,6 +299,7 @@ def listen_thread():
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     # ip_address = '127.0.0.1'
+    my_info['ip'] = ip_address
     print("Local IP address: " + ip_address)
     # create a socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -247,3 +324,4 @@ def listen_thread():
 if __name__ == '__main__':
     # create a new chat console
     console_thread()
+    exit(0)
