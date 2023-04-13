@@ -3,11 +3,11 @@ This is EC530 P2P Chat project.
 
 ## Requirements
 
-### This program works on macOS only, don't run it on Windows or Linux.
+### This program's full function works on macOS only, don't run it on Windows or Linux.
 
-### This program works on macOS only, don't run it on Windows or Linux.
+### This program's full function works on macOS only, don't run it on Windows or Linux.
 
-### This program works on macOS only, don't run it on Windows or Linux.
+### This program's full function works on macOS only, don't run it on Windows or Linux.
 
 ## P2P Chat Console - console.py
 
